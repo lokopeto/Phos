@@ -121,7 +121,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 	//Third Validation
 	//Search Thru History
 	// fmt.println("Third Validation")
-	MAX_SEARCH :: 10
+	MAX_SEARCH :: 2
 	MAX_SEARCH_DIV :: MAX_SEARCH >> 2
 	last : uint = NULL_IDX
 	for n,n_i in box.history {
@@ -133,6 +133,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 			if box.list[n_s].idx == NULL_IDX {
 				box.head = n_s
 				box.list[box.head].idx = n_s
+				ptr = &box.list[box.head].data
 				h = {n_s, box.list[box.head].gen}
 				box.history = history_rem(box.history, n_s)
 				return
@@ -149,6 +150,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 		if n.idx == NULL_IDX {
 			box.head = uint(i)
 			box.list[box.head].idx = box.head
+			ptr = &box.list[box.head].data
 			h = {box.head, box.list[box.head].gen}
 			box.history = history_rem(box.history, box.head)
 			return
@@ -161,7 +163,6 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 add_indexed :: proc(box: ^HandleBox($T), index: uint) -> (Handle,^T) {
 	if box.list[h.idx].idx != NULL_IDX {
 		box.list[h.idx].idx = h.idx
-		box.list[h.idx].data = {}
 		return box.list[h.idx].handle, &box.list[h.idx].data
 	} else {return {NULL_IDX, 0}, nil}
 }
