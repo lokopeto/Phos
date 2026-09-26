@@ -3,7 +3,7 @@ package phos
 import "base:runtime"
 import "core:mem/virtual"
 import "core:math/bits"
-import "core:fmt"
+// import "core:fmt"
 
 NULL_IDX :: bits.UINT_MAX
 
@@ -129,7 +129,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 		// fmt.print(n,",",sep="")
 		for i in 0..<MAX_SEARCH {
 			n_s := n+uint(i-MAX_SEARCH_DIV)
-			fmt.println(n_s)
+			// fmt.println(n_s)
 			if box.list[n_s].idx == NULL_IDX {
 				box.head = n_s
 				box.list[box.head].idx = n_s
