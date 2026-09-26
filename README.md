@@ -1,6 +1,6 @@
 <div>
 	<img width="160" alt="logo" align="left" src="https://github.com/lokopeto/assets/blob/master/Phos/Phos.png"/>
-	<h3>Phos -- Fast and Simple Static Handle Map</h3>
+	<h3>Phos - Fast and Simple Static Handle Map</h3>
 </div>
 
 No pointer arithmetic! array indexing Only. Inspired by the Ben Kenwright paper [Fast Efficient Fixed-Size Memory Pool](https://arxiv.org/abs/2210.16471) 
@@ -63,7 +63,7 @@ removed := phos.remove(
 In case you want to delete the entire HandleBox, 
 you can use this, it will free from the memory
 
-*OBS: any heap allocation will LEAK, you have to manually free before removing it!*
+**OBS: any heap allocation will LEAK, you have to manually free before removing it!**
 ```Odin
 phos.delete(
 	&entities //box: ^HandleBox($T), 
