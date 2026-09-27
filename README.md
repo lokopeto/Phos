@@ -8,9 +8,12 @@ No pointer arithmetic! array indexing Only. Inspired by the Ben Kenwright paper 
 <p><br></p>
 
 ## Tests
-Build and run tests:
 ```bash
 odin run test -o:speed
+```
+There is a stress test using Raylib for a graphical representation of the data:
+```bash
+odin run test_raylib -o:speed
 ```
 
 ## How to Use It
@@ -45,7 +48,7 @@ valid := phos.is_valid(
 Phos will not do iteration for you!
 It has everything you need, here is a example:
 ```Odin
-for e in entities.list {
+for e in entities.list[:phos.len(&entities)] {
 	if phos.is_valid(&entities,e) {
 		// e.data has the data!
 	}

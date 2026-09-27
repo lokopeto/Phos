@@ -27,8 +27,10 @@ HandleBox :: struct($T: typeid){
 
 	head: uint,
 	history: [128]uint,
-	// free: uint,
-	// allocated: uint,
+	free: uint,
+	claimed: uint,
+	// length: uint,
+	head_highest: uint,
 	
 	list: #soa[]HandleData(T)
 }
@@ -60,7 +62,7 @@ create :: proc(
 		// free = size,
 		allocator = allocator
 	}
-	d.list = make(#soa[]HandleData(T), sz, d.allocator)
+	d.list = make(#soa[]HandleData(T), size, d.allocator)
 	for &l in d.list {l.idx = NULL_IDX}
 	return
 }
@@ -71,18 +73,25 @@ delete :: proc(data: ^HandleBox($T)) {
 }
 // Get the length of claimed handles
 // good for iteration over the list
-len :: proc(box: HandleBox($T)) -> (high: int) {
-	for v,i in box.list {
-		if v.idx != NULL_IDX {
-			high = i
+len :: proc(box: ^HandleBox($T)) -> (int) {
+	#reverse for h,i in box.list[:min(box.size,box.head_highest+2)] {
+		if h.idx != NULL_IDX {
+			box.head_highest = h.idx
+			return int(h.idx)
 		}
 	}
-	return
+	return 0
 }
+
 // Add and get a Handle on a Handle Box
 // If idx is NULL_IDX - max(uint) - there is no empty slot
 add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 	defer h.idx = NULL_IDX
+	final_touch :: proc (box: ^HandleBox($T)) {
+		box.history = history_rem(box.history, box.head)
+		box.free -= box.free > 0 ? 1 : 0; box.claimed += 1
+		box.head_highest = box.head > box.head_highest ? box.head : box.head_highest
+	}
 
 	// First Validation
 	// Verify Index in Head
@@ -92,7 +101,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 
 		box.list[h.idx].idx = h.idx
 		ptr = &box.list[h.idx].data
-		box.history = history_rem(box.history, box.head)
+		final_touch(box)
 		return
 	}
 
@@ -114,28 +123,28 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 	if second_pass {
 		box.list[box.head].idx = h.idx
 		ptr = &box.list[box.head].data		
-		box.history = history_rem(box.history, box.head)
+		final_touch(box)
 		return
 	}
 
 	//Third Validation
 	//Search Thru History
 	// fmt.println("Third Validation")
-	MAX_SEARCH :: 2
+	MAX_SEARCH :: 1
 	MAX_SEARCH_DIV :: MAX_SEARCH >> 2
 	last : uint = NULL_IDX
 	for n,n_i in box.history {
 		if last == n { continue }
 		// fmt.print(n,",",sep="")
 		for i in 0..<MAX_SEARCH {
-			n_s := n+uint(i-MAX_SEARCH_DIV)
+			n_s := n+uint(i-MAX_SEARCH_DIV) >= NULL_IDX-MAX_SEARCH_DIV ? 0 : n+uint(i-MAX_SEARCH_DIV)
 			// fmt.println(n_s)
 			if box.list[n_s].idx == NULL_IDX {
 				box.head = n_s
 				box.list[box.head].idx = n_s
 				ptr = &box.list[box.head].data
 				h = {n_s, box.list[box.head].gen}
-				box.history = history_rem(box.history, n_s)
+				final_touch(box)
 				return
 			}
 		}
@@ -152,7 +161,7 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 			box.list[box.head].idx = box.head
 			ptr = &box.list[box.head].data
 			h = {box.head, box.list[box.head].gen}
-			box.history = history_rem(box.history, box.head)
+			final_touch(box)
 			return
 		}
 	}
@@ -163,6 +172,8 @@ add :: proc(box: ^HandleBox($T)) -> (h: Handle, ptr: ^T) {
 add_indexed :: proc(box: ^HandleBox($T), index: uint) -> (Handle,^T) {
 	if box.list[h.idx].idx != NULL_IDX {
 		box.list[h.idx].idx = h.idx
+		box.free -= box.free > 0 ? 1 : 0; box.claimed += 1
+		box.head_highest = box.head > box.head_highest ? box.head : box.head_highest
 		return box.list[h.idx].handle, &box.list[h.idx].data
 	} else {return {NULL_IDX, 0}, nil}
 }
@@ -177,8 +188,19 @@ remove :: proc(box: ^HandleBox($T), h: Handle) -> bool {
 		},
 		data = {}
 	}
-	
+	box.free += 1; box.claimed -= 1
 	box.history = history_add(box.history, h.idx)
+	if box.head > box.head_highest {
+		box.head_highest = box.head
+	} else {
+		#reverse for h,i in box.list[:box.head_highest+1] {
+			if h.idx != NULL_IDX {
+				box.head_highest = h.idx
+				return true
+			}
+		}
+	}
+	// box.head_highest = box.head > box.head_highest ? box.head : box.head_highest
 	return true
 }
 // Verify if Handle exist on the HandleBox
