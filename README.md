@@ -59,7 +59,7 @@ Use this to remove a handle and reset the data
 **OBS: Phos will NOT realocate the data, it will just reset all to 0, any heap allocation will LEAK, you have to manually free before removing it!**
 ```Odin
 removed := phos.remove(
-	entities, //box: ^HandleBox($T), 
+	&entities, //box: ^HandleBox($T), 
 	entity //h: Handle
 )
 ```
